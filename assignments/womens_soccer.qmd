@@ -26,30 +26,66 @@ Now, onto the questions using aggregates, which means `group_by` and `summarize`
 
 1. How many shots in total has Maryland attempted and how many have been on goal? Calculate a percentage of shots on goal.
 
-```{r}
+Maryland attempted 83 shots and 45 of them were on goal. 54.2% was the percentages of shots on goal.
 
+```{r}
+matches_2025 |>
+  group_by(team) |>
+  summarise (
+    shots_att = sum(sh_att),
+    sog = sum(so_g),
+    sht_pct = (sog/shots_att)*100
+  )
 ```
+
 
 2. What about the same shot stats from last season's first four games? You'll need to load the matches from 2024 - just change the season in the URL - and filter by date to find the first four games.
 
-```{r}
+In the first four games, Maryland attempted 53 shots with 27 of them being on goal. Their shot on goal percentage through the first four games was 50.9%.
 
-```
+```{r}
+matches_2024 <- read_csv("https://raw.githubusercontent.com/dwillis/NCAAWomensSoccerData/main/data/ncaa_womens_soccer_matchstats_2024.csv")
+
+matches_2024 |>
+    group_by(team="Maryland Terrapins, Terps") |>
+     arrange(date) |>
+  head(n=4) |>
+ summarise (
+    shots_att = sum(sh_att),
+    sog = sum(so_g),
+    sht_pct = (sog/shots_att)*100 
+    )
+```  
 
 
 3. Maryland started 2022 with 4 draws. Have any other teams had as many this season?
+Yes, several teams have four or more draws this season, the highest number of draws came from Drake and Navy at seven.
 
 ```{r}
-
+matches_2025 |>
+  group_by(team, outcome = "draw") |>
+  summarise (
+    total = n ()
+  ) |>
+  arrange(desc(total))
 ```
 
 
 4. How many total corner kicks has Maryland had so far this season and how many have its opponents have? Calculate the difference between the two totals for every team using group_by, summarize and mutate, then filter to find Maryland's totals.
 
-```{r}
+Maryland has had 28 corner kicks this season while their opponents have only had 22. The difference is 6 kicks.
 
+```{r}
+matches_2025 |>
+  group_by(team) |>
+  summarise (
+    corner_kicks = sum(corners),
+    opp_corner_kicks = sum(defensive_corners)
+  ) |>
+  mutate(corner_diff = corner_kicks - opp_corner_kicks)  |>
+  filter(team=="Maryland Terrapins, Terps")
 
 ```
 
 5. What's the most interesting thing you've seen from these questions?
-
+I find it really interesting that Maryland had only 53 shots in the first four games of 2024 but already has 83 shots in 2025 with just two more games played. That’s a jump of 20 shots in only two extra games, showing a big increase in their offensive activity. It’s impressive how they’re creating even more scoring opportunities this season while maintaining solid accuracy. Their shot on goal percentage has gone up by almost 4%  while taking more shots. It makes me wonder if they are taking smarter shots or the talent is the causation. 
