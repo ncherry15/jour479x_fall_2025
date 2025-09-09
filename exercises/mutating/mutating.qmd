@@ -51,7 +51,7 @@ head(attendance)
 
 What's one thing you notice about the data that might make year-over-year comparisons more complex?
 
-**Answer** DESCRIBE IT HERE
+**Answer** The first thing that stood out to me were conference changes this complicates comparisons because different conferences influence attendance. For example, moving to a more competitive conference could either increase or decrease attendance. If your team is competitive i the new conference attendance is likely to increase. Another factor is teams not reporting their attendance accurately.
 
 The code to calculate percent change is pretty simple. Remember, with `summarize`, we used `n()` to count things. With `mutate`, we use very similar syntax to calculate a new value using other values in our dataset. So in this case, we're trying to do (new-old)/old, but we're doing it with fields. If we look at what we got when we did `head`, you'll see there's \`2024\` as the new data, and we'll use \`2023\` as the old data. So we're looking at one year. Then, to help us, we'll use arrange again to sort it, so we get the fastest growing school over one year.
 
@@ -77,7 +77,7 @@ attendance |> mutate(
 
 Who had the most growth in 2024 compared to the year before? What could account for that change? And what team(s) are the most interesting here?
 
-**Answer** YOUR ANSWER HERE
+**Answer** SMU experienced the most growth and I think it could be a result of their conference change. They moved into a more competitive conference so there was some new excitement surrounding the team. They faced more high-profile opponents which is likely to increase attendance. It was shocking to see UCONN's growth because they are not as good.
 
 ## Back to women's soccer
 
@@ -93,15 +93,29 @@ Previously we calculated totals for shots attempted and shots on goal for each t
 
 ```{r}
 matches_2025 |> 
-  group_by(REPLACE WITH GROUP_BY) |> 
+  group_by(team) |> 
   summarise(
-    total_on_goal = REPLACE WITH FORMULA,
-    total_goals = REPLACE WITH FORMULA
+    total_on_goal = sum(so_g),
+    total_goals = sum(goals)
   ) |> 
-  mutate(percent = REPLACE WITH FORMULA) |> 
+  mutate(percent = (total_goals/total_on_goal)*100) |> 
   arrange(desc(percent))
 ```
 
 What stands out to you here? Describe that below. Would you narrow down the results to certain teams based on the data? If so, do that in the code and explain why you did it below. Finally, what's the most interesting result to you that could be a story?
 
-**Answer** YOUR ANSWER HERE
+**Answer** I noticed how close the percentage of goals were while the total goals varied so much. I was almost ready to say Seton Hall is really good offensively because they have the highest percentage but they also have taken a very minimal number of shots in comparison to the other higher percentages. I would narrow down the results to also see if goal percentages increase when teams are home. I would do so running this code:
+
+```{r}
+matches_2025 |> 
+  group_by(team) |>
+  filter(home_away=="Home") |>
+  summarise(
+    total_on_goal = sum(so_g),
+    total_goals = sum(goals)
+  ) |> 
+  mutate(percent = (total_goals/total_on_goal)*100) |> 
+  arrange(desc(percent))
+```
+  
+I used majority of the same code ad added a filter for only home games. Based on this, I would say home games have a major influence on scoring opportunities.Teams seem to have a higher percentage when they are home. The most interesting result is how many shots are on goal, not only because shots on gal typically signify good shots but more so the number of shots on goal displays how much a team is shooting. I would argue the more shots you take, the more likely you are to win because you create more scoring opportunities. It is hard to take a "smart" shot in soccer. The data is showing me to take all shots and your likelihood of scoring will increase.
