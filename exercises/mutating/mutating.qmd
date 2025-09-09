@@ -79,7 +79,7 @@ mutate(
 
 Who had the most growth in 2024 compared to the year before? What could account for that change? And what team(s) are the most interesting here?
 
-**Answer** SMU experienced the most growth and I think it could be a result of their conference change. They moved into a more competitive conference so there was some new excitement surrounding the team. They faced more high-profile opponents which is likely to increase attendance. It was shocking to see UCONN's growth because they are not as good. I added a filter for the SEC conference and I was shocked to see the variability in change because the SEC has not changed much over the years. I expected the attendance to be more consistent across the board. I was also shocked to see Georgia's attendance down so much coming off of such a dominant National Championship.
+**Answer** SMU experienced the most growth and I think it could be a result of their conference change. They moved into a more competitive conference so there was some new excitement surrounding the team. They faced more high-profile opponents which is likely to increase attendance. It was shocking to see UCONN's growth because they are not as good. I added a filter for the SEC conference and I was shocked to see the variability in change because the SEC has not changed much over the years. I expected the attendance to be more consistent across the board. I was also shocked to see Georgia's attendance down so much coming off of such a dominant National Championship and being the seceond best team in the conference.
 
 ## Back to women's soccer
 
