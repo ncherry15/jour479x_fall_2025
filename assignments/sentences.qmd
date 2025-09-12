@@ -1,0 +1,57 @@
+---
+title: "sentences"
+format: html
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+matches_2024 <- read_csv("https://dwillis.github.io/sports-data-files/ncaa_womens_soccer_totals_2024.csv")
+```
+
+**My idea/question**
+The SWAC having the highest SoG pct, are they this good or is the Big Ten more competitive.
+
+First I want to look at the SoG Pct by conference to show how the SWAC ranks in comparison to other conferences and specifically Big Ten.
+```{r}
+matches_2024 |> 
+  group_by(conference_name) |> 
+  summarise (
+    shots_att = sum(ShAtt),
+    sog = sum(SoG),
+    sht_pct = (sog/shots_att)*100
+  ) |> 
+  arrange(desc(sht_pct))
+```
+
+The SWAC is ranked number one with their shot on goal percentage falling at 53.83%, the Big Ten is ranked 23rd with 44.46%. I now want to see where they fall in terms of shots attempted, could their percentage be so high because they're taking significantly fewer shots than the Big Ten?
+
+```{r}
+matches_2024 |> 
+  group_by(conference_name) |> 
+  summarise (
+    shots_att = sum(ShAtt),
+    sog = sum(SoG),
+    sht_pct = (sog/shots_att)*100
+  ) |> 
+  arrange(desc(shots_att))
+```
+The Big Ten now sits 3rd when looking at the quantity of shots attempted, in fact, all four power four schools rank 1-4 in terms of shots attempted. The SWAC fell to the 30 out of 31 conferences for shots attempted. Before I draw any conclusions, I think it's also important to look at how many teams are in the respective conferences to see if they're comparable.
+
+```{r}
+matches_2024 |> 
+  group_by(conference_name) |> 
+  summarise (
+  total = n ()
+  ) |> 
+arrange(desc(total))
+```
+
+The Big Ten has the most teams in its conference at 18, while the SWAC has half of that at 9. Conferences with similar team totals like the Big South,9, Southland, MVC, and NEC, 10, all have similar shot percentages to the SWAC. This data does not defend which conference is more competitive but it does prove the SWAC being "that good" is not a strong explanation of their shot percentage being so high. With significantly fewer teams, they put up significantly fewer shots. I can argue their percentage is so high because they simply have less data. The Big Ten has more shots on goal than the SWAC does shots attempted as a whole. Because the SWAC has fewer teams and total shot attempts, its SoG percentage is calculated from a smaller sample, which can make the average appear higher due to greater variance.
+
+***DATA DRIVEN PARAGRAPH***
+The Southwestern Athletic Conference (SWAC) leads Division I with a 53.8% shot-on-goal rate, far ahead of the Big Ten’s 44.5%. At first glance that suggests SWAC attackers are exceptionally accurate, but the data points elsewhere. Big Ten teams rank third in total shot attempts and all four Power Four leagues sit atop that list, while the SWAC is 30th of 31 conferences.
+
+Size adds to the gap with the Big Ten fielding 18 programs, double the SWAC’s nine, while other similar-sized leagues like the Big South or Missouri Valley post comparable percentages. Big Ten teams have recorded more shots on goal than the SWAC has total attempts. With fewer teams and far fewer shots, the SWAC’s average rests on a smaller sample, making its lofty percentage more a product of variance than proof of superior accuracy.

@@ -89,3 +89,48 @@ matches_2025 |>
 
 5. What's the most interesting thing you've seen from these questions?
 I find it really interesting that Maryland had only 53 shots in the first four games of 2024 but already has 83 shots in 2025 with just two more games played. That’s a jump of 20 shots in only two extra games, showing a big increase in their offensive activity. It’s impressive how they’re creating even more scoring opportunities this season while maintaining solid accuracy. Their shot on goal percentage has gone up by almost 4%  while taking more shots. It makes me wonder if they are taking smarter shots or the talent is the causation. 
+
+```{r}
+swac_teams <- c("Alabama A&M Bulldogs", "Alabama St. Lady Hornets", "Alcorn Lady Braves", "Ark.-Pine Bluff Lady Lions", "Grambling Lady Tigers", "Jackson St. Lady Tigers", "Mississippi Val. Devilettes", "Prairie View Lady Panthers", "Southern U. Lady Jaguars", "Texas Southern Lady Tigers")
+
+swac_matches <- matches_2025 |> 
+  filter(team %in% swac_teams)
+
+matches_2025 |> 
+  summarise(
+    mean_diff = mean(diff),
+    mean_opp_goals = mean(defensive_goals),
+    mean_sog = mean(so_g),
+    mean_opp_sog = mean(defensive_so_g)
+    )
+
+swac_matches |> 
+  summarise(
+    mean_diff = mean(diff),
+    mean_opp_goals = mean(defensive_goals),
+    mean_sog = mean(so_g),
+    mean_opp_sog = mean(defensive_so_g)
+    )
+
+big10 <- c("Nebraska Huskers", "Iowa Hawkeyes", "Minnesota Golden Gophers", "Illinois Fighting Illini", "Northwestern Wildcats", "Wisconsin Badgers", "Indiana Hoosiers", "Purdue Boilermakers", "Ohio St. Buckeyes", "Michigan Wolverines", "Michigan St. Spartans", "Penn St. Nittany Lions", "Rutgers Scarlet Knights", "Maryland Terrapins, Terps", "Southern California Trojans", "UCLA Bruins", "Washington Huskies", "Oregon Ducks")
+
+big10_matches <- matches_2025 |> 
+  filter(team %in% big10)
+
+big10_matches |> 
+  summarise(
+    mean_diff = mean(diff),
+    mean_opp_goals = mean(defensive_goals),
+    mean_sog = mean(so_g),
+    mean_opp_sog = mean(defensive_so_g)
+    )
+
+big10_matches |> 
+  filter(team == "Maryland Terrapins, Terps") |> 
+  summarise(
+    mean_diff = mean(diff),
+    mean_opp_goals = mean(defensive_goals),
+    mean_sog = mean(so_g),
+    mean_opp_sog = mean(defensive_so_g)
+    )
+```
