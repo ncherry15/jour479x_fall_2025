@@ -165,3 +165,73 @@ t.test(maryland_2024$total_goals, maryland_2025$total_goals)
 Results:
 For Maryland games, the average total goals increased slightly from 2.68 in 2024 to 2.88 in 2025, but the p-value, 0.766, is much higher than 0.05, so this difference is not statistically significant. The confidence interval, -1.54 to 1.16, includes 0, further indicating no significant change. This suggests that, so far, Maryland’s scoring is roughly the same as last year. Since the 2025 season is not yet halfway complete, the results could change as more games are played. Additionally, since the Terps generally perform better against non-conference opponents and have only played one conference game so far, their scoring average may not yet reflect typical performance across the full season.
 
+## Correlations
+```{r}
+correlations <- read_csv("https://raw.githubusercontent.com/dwillis/NCAAWomensSoccerData/main/data/ncaa_womens_soccer_matchstats_2024.csv")
+
+newcorrelations <- correlations |> 
+  mutate(
+    differential = goals - defensive_goals
+    )
+
+newcorrelations |> summarise(correlation = cor(differential, fouls, method="pearson"))
+
+newcorrelations |> summarise(correlation = cor(differential, yellow_cards, method="pearson"))
+
+fit <- lm(differential ~ fouls, data = newcorrelations)
+summary(fit)
+```
+R-squared what percent of differential do fouls account for
+Estimate coefficient: what happens whe you change the predictor
+
+
+```{r}
+newcorrelations |> 
+  summarise(correlation = cor(differential, so_g, method="pearson"))
+
+net <- lm(differential ~ so_g, data = newcorrelations)
+summary(net)
+```
+##2025 Results
+```{r}
+correlations_25 <- read_csv("https://raw.githubusercontent.com/dwillis/NCAAWomensSoccerData/main/data/ncaa_womens_soccer_matchstats_2025.csv")
+
+newcorrelations_25 <- correlations_25 |> 
+  mutate(
+    differential = goals - defensive_goals
+    )
+
+newcorrelations_25 <- newcorrelations_25 |>
+  mutate(homeaway = case_when(
+    grepl("Away", home_away) ~ 0,
+    grepl("Home", home_away) ~ 1)
+)
+
+newcorrelations_25 |> 
+  summarise(correlation = cor(differential, homeaway, method="pearson"))
+
+fit <- lm(differential ~ homeaway, data = newcorrelations_25)
+summary(fit)
+
+```
+```{r}
+terps_data <- correlations_25 |> 
+  mutate(
+    differential = goals - defensive_goals,
+    homeaway = case_when(
+      grepl("Away", home_away) ~ 0,
+      grepl("Home", home_away) ~ 1
+    )
+  ) |> 
+  filter(team == "Maryland Terrapins, Terps")
+
+terps_data |> 
+  summarise(correlation = cor(differential, homeaway, method="pearson"))
+
+terps_fit <- lm(differential ~ homeaway, data = terps_data)
+summary(terps_fit)
+```
+
+## Story Pitch
+This season, the UMD soccer team has turned Ludwig Field into a nearly unbeatable fortress. They opened the year with three home shutouts, dominating Lehigh 3-0, Saint Francis 5-0 and UMBC 1-0, then edged Navy 2-1 and Indiana 2-1, showing just how much sharper their play is at home. Away games tell a different story, with losses at Old Dominion 0-2, James Madison 0-1, and Penn State 0-4 revealing a clear drop in rhythm and energy. While most teams see only a slight boost at home, the Terps’ performance soars in front of their fans, making their home field advantage one of the strongest in the league. The contrast makes home games a must-watch, showcasing precise attacks, strong defense, and the electric atmosphere that the crowd helps create.
+
