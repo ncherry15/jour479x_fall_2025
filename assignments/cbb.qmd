@@ -1,0 +1,118 @@
+## Regression
+```{r}
+library(tidyverse)
+library(Hmisc)
+```
+```{r}
+logs <- read_csv("https://dwillis.github.io/sports-data-files/cbblogs1525.csv")
+```
+```{r}
+logs <- logs |> mutate(
+  Differential = TeamScore - OpponentScore, 
+  NetRebounds = TeamTotalRebounds - OpponentTotalRebounds,
+  TurnoverMargin = TeamTurnovers - OpponentTurnovers)
+```
+```{r}
+rebounds <- lm(Differential ~ NetRebounds, data=logs)
+summary(rebounds)
+```
+```{r}
+model1 <- lm(Differential ~ NetRebounds + TurnoverMargin, data=logs)
+summary(model1)
+```
+```{r}
+install.packages("Hmisc")
+```
+```{r}
+simplelogs <- logs |> select_if(is.numeric) |> select(-Game) |> select(Differential, NetRebounds, TurnoverMargin, TeamFGPCT, TeamTotalRebounds, OpponentFGPCT, OpponentTotalRebounds)
+
+cormatrix <- rcorr(as.matrix(simplelogs))
+
+cormatrix$r
+```
+```{r}
+model2 <- lm(Differential ~ NetRebounds + TurnoverMargin + TeamFGPCT + OpponentFGPCT, data=logs)
+summary(model2)
+```
+```{r}
+logs |> 
+  filter(Team == "Michigan" & Season == '2020-2021' | Team == "Wisconsin" & Season == '2019-2020' | Team == "Michigan State" & Season == '2018-2019' | Team == "Michigan State" & Season == '2017-2018' | Team == 'Illinois' & Season == '2021-2022' | Team == 'Purdue' & Season == '2022-2023' | Team == 'Purdue' & Season == '2023-2024' | Team == "Michigan State" & Season == '2024-2025') |> 
+  summarise(
+    meanNetRebounds = mean(NetRebounds),
+    meanTurnoverMargin = mean(TurnoverMargin),
+    meanTeamFGPCT = mean(TeamFGPCT),
+    meanOpponentFGPCT = mean(OpponentFGPCT)
+  )
+```
+```{r}
+# (netrebounds estimate * meanNetRebounds) + (turnover margin estimate * meanTurnoverMargin) + (TeamFGPCT estimate * meanTeamFGPCT) + (OpponentFGPCT estimate * meanOpponentFGPCT) + Intercept
+(0.660276*9.432099) + (-1.315355*1.711934) + (91.472656*0.4745391) + (-91.705986*0.4000823) + 0.230468
+```
+
+```{r}
+logs |> 
+  filter(
+    Team == "Maryland" & Season == '2024-2025'
+    ) |> 
+  summarise(
+    meanNetRebounds = mean(NetRebounds),
+    meanTurnoverMargin = mean(TurnoverMargin),
+    meanTeamFGPCT = mean(TeamFGPCT),
+    meanOpponentFGPCT = mean(OpponentFGPCT)
+  )
+```
+```{r}
+(0.660276*2.472222) + (-1.315355*-3.444444) + (91.472656*0.4687778) + (-91.705986*0.4150278) + 0.230468
+```
+```{r}
+logs |> 
+     filter(
+         Team == "Maryland" & Season == '2024-2025'
+     ) |> summarise(avg_score = mean(TeamScore), avg_opp = mean(OpponentScore))
+```
+
+## My new model
+I think a good alternative model would predict a team’s offensive efficiency or points per possession. I’d use predictors like FGPct, Offensive Rebounds, Turnovers, and FTAs, all of which directly influence scoring per trip.This could show whether shooting accuracy, second-chance opportunities, or ball security matters most for putting points on the board.
+One challenge is that some of these stats are correlated, so it could make it harder to isolate each variable’s impact.
+
+I used chatgpt to create a formula to figure out possesions: https://chatgpt.com/share/68d5875c-1a3c-8012-87a8-0b78d97b5962 
+
+```{r}
+logs <- logs |> 
+  mutate(
+    possessions = TeamFGA + 0.44 * TeamFTA - TeamOffRebounds + TeamTurnovers,
+    offensive_efficiency = TeamScore / possessions
+  )
+
+model3 <- lm(
+  offensive_efficiency ~ TeamFGPCT + TeamOffRebounds + TeamTurnovers + TeamFTA,
+  data = logs
+)
+
+summary(model3)
+```
+The model explains about 88% of the variation in offensive efficiency, indicating that these four stats capture most of what drives scoring per possession. FGPct has the largest positive effect, meaning that even small improvements in shooting accuracy can meaningfully increase offensive efficiency. Offensive rebounds and FTAs also contribute positively, showing that extending possessions and earning points from the line are important, while turnovers have a clear negative effect. I expected this as losing the ball reduces any scoring opportunity. All predictors are highly significant, but because some of them are related (for example, better shooting might lead to fewer offensive rebounds), there could be some overlap in the information the variables provide. This slightly inflates standard errors, though the overall relationships remain strong and intuitive.
+
+```{r}
+maryland_games <- logs |>
+  filter(
+    TeamFull == "Maryland Terrapins Men's",
+    Season == "2024-2025",
+    Date %in%  c("2024-11-15", "2024-12-08", "2025-01-10","2025-02-16","2025-03-15")
+  )
+
+maryland_games |>
+  select(Date, TeamFGPCT, TeamOffRebounds, TeamTurnovers, TeamFTA)
+
+maryland_games |>
+  mutate(
+    predicted_efficiency =
+      0.2252 +
+      1.867   * TeamFGPCT +
+      0.01214 * TeamOffRebounds +
+     -0.01518 * TeamTurnovers +
+      0.003214 * TeamFTA
+  ) |> 
+  select(Date, offensive_efficiency, predicted_efficiency)
+```
+I would say my model performs well overall. Across the five Maryland games, its predicted offensive efficiency stays within roughly 0.01 to 0.05 points per possession of the actual values. This consistency shows that shooting percentage, offensive rebounds, turnovers, and free throws capture the key elements of scoring efficiency.Incorporating factors like opponent defensive quality or player-level metrics could further refine the predictions and narrow the remaining gaps.
