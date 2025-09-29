@@ -1,0 +1,39 @@
+```{r}
+library(tidyverse)
+```
+```{r}
+logs <- read_csv("https://dwillis.github.io/sports-data-files/footballlogs1124.csv")
+```
+```{r}
+logs <- logs |> 
+  mutate(
+    differential = TeamScore - OpponentScore
+  )
+```
+```{r}
+fit <- lm(differential ~ Penalties, data = logs)
+summary(fit)
+```
+The p-value is 0.00467, which is well below the 0.05 threshold, indicating that the negative relationship between penalties and point differential is statistically significant and unlikely to be due to random chance. However, the model’s R-squared is only 0.00036, so penalties explain less than 0.04 % of the variation in point differential which is essentially none. This extremely low explanatory power shows that while the effect is statistically significant, it is not practically meaningful. Overall, the model has little predictive value for understanding or forecasting point differential.
+```{r}
+model <- lm(differential ~ PenaltyYds + Fumbles + Interceptions + TotalTurnovers, data = logs)
+summary(model)
+```
+I chose PenaltyYds, Fumbles, Interceptions, and TotalTurnovers because each represents game mistakes that could lower a team’s point differential. However, TotalTurnovers is just the sum of Fumbles and Interceptions, so it introduced perfect multicollinearity and was automatically dropped, confirming that these columns explain each other rather than adding new information. I checked this by running two separate models, with and without TotalTurnovers, my residual error stayed the same. 
+
+The remaining predictors are all highly significant (p < 0.001), with Fumbles and Interceptions showing strong negative effects and PenaltyYds a small positive effect. The residual standard error dropped from 22.61 in the penalty model to 20.98 and the R-squared rose to about 0.14, meaning the model explains roughly 14 % of the variance in point differential. While this is a noticeable improvement, most of the variation is still unexplained, so the model is only modestly useful for predicting game outcomes.
+```{r}
+close_games <- logs |> 
+  filter(abs(differential) <= 7)
+```
+```{r}
+fit2 <- lm(differential ~ Penalties, data = close_games)
+summary(fit2)
+```
+```{r}
+model2 <- lm(differential ~ PenaltyYds + Fumbles + Interceptions + TotalTurnovers, data = close_games)
+summary(model2)
+```
+I defined “close” games as those where the final score was within 1 score, or 7 points. Comparing the full dataset to only close games, the simple regression model using penalties alone loses explanatory power: the R-squared drops from 0.00036 in the full dataset to 0.0006 in close games, and the effect size of penalties is smaller. The multiple regression models also show a similar pattern: while adding fumbles, interceptions, and penalty yards increases R-squared from 0.139 in the full dataset to 0.045 in close games, the model explains less of the variation when focusing only on tightly contested games. This makes sense because in close games, outcomes are more influenced by small, situational factors that aren’t fully captured by these stats. To improve the model, I could include additional variables such as third-down conversions, offensive yards, or defensive stats, which may have a stronger impact in close contests. Overall, while multiple regression consistently outperforms simple models, both approaches remain limited in predicting the outcomes of close games based on the fators observed.
+
+I’ve learned that penalties have a small but statistically significant negative effect on point differential, meaning more penalties slightly reduce a team’s scoring margin. However, the effect is very weak, especially in close games, and most of the variation in scores is explained by other factors like fumbles and interceptions. While this isn’t enough to predict outcomes on its own, it can add context in a story about how mistakes influence games, highlighting trends rather than definitive results. In journalism, I would use it to illustrate a broader narrative about team discipline or turnover impact, rather than as a standalone predictive measure. It is great to add context but I do not think the findings are strong enough to stand alone for a story.
