@@ -235,3 +235,53 @@ summary(terps_fit)
 ## Story Pitch
 This season, the UMD soccer team has turned Ludwig Field into a nearly unbeatable fortress. They opened the year with three home shutouts, dominating Lehigh 3-0, Saint Francis 5-0 and UMBC 1-0, then edged Navy 2-1 and Indiana 2-1, showing just how much sharper their play is at home. Away games tell a different story, with losses at Old Dominion 0-2, James Madison 0-1, and Penn State 0-4 revealing a clear drop in rhythm and energy. While most teams see only a slight boost at home, the Terps’ performance soars in front of their fans, making their home field advantage one of the strongest in the league. The contrast makes home games a must-watch, showcasing precise attacks, strong defense, and the electric atmosphere that the crowd helps create.
 
+##Residuals
+```{r}
+matches_2025 <- matches_2025 |> 
+  mutate(differential = goals - defensive_goals)
+```
+```{r}
+model <- lm(differential ~ so_g + corners + sh_att + defensive_so_g, data=matches_2025)
+summary(model)
+```
+1. I chose shots on goal and shot attempts because they directly influence goal differential — if a team doesn’t shoot, it cannot increase its chances of scoring. Corners are also an important factor, as they often create scoring opportunities and can lead to more goals. Finally, defensive statistics are critical, since allowing more shots on goal increases the opponent’s chances of scoring and negatively impacts the differential.
+
+The model explains about 57% of the variance in goal differential, showing strong predictive value for this type of data. Shots on goal increase differential, while defensive shots on goal decrease it, making them the most important predictors, whereas corners and total shot attempts add little once shots on goal are included. The residuals range from about -7 to +7, with most falling within ±1, and the residual standard error of 1.54 suggests that predictions are typically within about 1.5 goals of the actual outcome.
+
+2. 
+```{r}
+matches_2025 <- matches_2025 |>  mutate(predicted = predict(model), residuals = residuals(model))
+```
+
+3.
+```{r}
+matches_2025 |>  arrange(desc(residuals)) |> 
+  head(n = 10)
+```
+
+4.
+```{r}
+matches_2025 |>  arrange(residuals) |> 
+  head(n = 10)
+```
+The very first thing that stood out to me was most people over-perform at home and under-perform away which was to be expected. 8/10 over-performers are also high-scoring shutouts so maybe  the opponents were not as good. For the under-performers most people of the games are losses. After all this, I realized a good amount of games appear in both results. 
+
+5. 
+```{r}
+matches_2025 |>  
+  filter(team == "Maryland Terrapins, Terps") |> 
+  arrange(desc(residuals)) |> 
+  head(n = 10)
+```
+```{r}
+matches_2025 |>  
+  filter(team == "Maryland Terrapins, Terps") |> 
+  arrange(residuals) |> 
+  head(n = 10)
+```
+I notice that 7/10 over-performances are at Home and 5/10 under-performances are away. I notice that 8 of the games are listed as both an under-performance and over-performance.5 of the under-performances, the Terps scored 0 goals. The number of corners in total is the same among both the top and bottom performances. As to be expected, defensive goals are significantly higher throughout under-performances. Defensive stats as a whole are significantly better.  The differentials are also greater for the under-performances. I would say when the Terps under-perform, they under-perform more than they over-perform when they over-perform. Their biggest over-performance were against Purdue and Indiana, while they under-performed against Penn St. and USC.
+
+The story I would explore is the Terps' place in the Big Ten, 3 of their under-performances came against Big Ten opponents while their top 2 over-performances were also against Big Ten Schools. The 3 losses were away, are the Terps' only losses in the Big Ten are away, can they not compete away from Ludwig Field?
+
+6. The most shocking thing was how games be both over and under-performances. I want to know what categorizes them as both. Could they be over-performing in one of the predictors but ultimately not scoring enough to perform adequately? I would want to only analyze Big Ten games for story purposes. The Terps' started the season off not playing their best opponents, looking only at the Big Ten would give me the opportunity to analyze their true performance.
+
