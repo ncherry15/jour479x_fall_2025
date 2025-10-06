@@ -116,3 +116,51 @@ maryland_games |>
   select(Date, offensive_efficiency, predicted_efficiency)
 ```
 I would say my model performs well overall. Across the five Maryland games, its predicted offensive efficiency stays within roughly 0.01 to 0.05 points per possession of the actual values. This consistency shows that shooting percentage, offensive rebounds, turnovers, and free throws capture the key elements of scoring efficiency.Incorporating factors like opponent defensive quality or player-level metrics could further refine the predictions and narrow the remaining gaps.
+
+##Z-Scores
+```{r}
+gamelogs <- read_csv("/Users/lornizzle/Downloads/logs25.csv")
+```
+```{r}
+teamquality <- gamelogs |> 
+  select(Conference, Team, TeamFGPCT, TeamTotalRebounds, OpponentFGPCT, OpponentTotalRebounds)
+
+teamtotals <- teamquality |> 
+  group_by(Conference, Team) |> 
+  summarise(
+    FGAvg = mean(TeamFGPCT), 
+    ReboundAvg = mean(TeamTotalRebounds), 
+    OppFGAvg = mean(OpponentFGPCT),
+    OffRebAvg = mean(OpponentTotalRebounds)
+    ) 
+```
+```{r}
+teamzscore <- teamtotals |> 
+  mutate(
+    FGzscore = as.numeric(scale(FGAvg, center = TRUE, scale = TRUE)),
+    RebZscore = as.numeric(scale(ReboundAvg, center = TRUE, scale = TRUE)),
+    OppZscore = as.numeric(scale(OppFGAvg, center = TRUE, scale = TRUE)) * -1,
+    OppRebZScore = as.numeric(scale(OffRebAvg, center = TRUE, scale = TRUE)) * -1,
+    TotalZscore = FGzscore + RebZscore + OppZscore + OppRebZScore
+  )  
+
+head(teamzscore)
+```
+```{r}
+teamzscore |> arrange(desc(TotalZscore))
+```
+```{r}
+teamzscore |> 
+  filter(Conference == "Big Ten MBB") |> 
+  arrange(desc(TotalZscore)) |>
+  select(Team, TotalZscore)
+```
+
+```{r}
+powerfive_plus_one <- c("SEC MBB", "Big Ten MBB", "Pac-12 MBB", "Big 12 MBB", "ACC MBB", "Big East MBB")
+teamzscore |> 
+  filter(Conference %in% powerfive_plus_one) |> 
+  arrange(desc(TotalZscore)) |>
+  select(Team, TotalZscore)
+```
+

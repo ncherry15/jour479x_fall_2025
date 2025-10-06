@@ -1,0 +1,65 @@
+---
+title: "wbb"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+```{r}
+stats <- read_csv("https://dwillis.github.io/sports-data-files/wbbstats1525.csv")
+```
+```{r}
+teamquality <- stats |> 
+  select(Season, School, Games, ForPoints, OppPoints, TotalRebounds, Steals, Turnovers, FieldGoalsMade) |> 
+  mutate(
+    PointsPerGame = ForPoints / Games,
+    OppPointsPerGame = OppPoints / Games,
+    ReboundsPerGame = TotalRebounds / Games,
+    StealsPerGame = Steals / Games,
+    TurnoversPerGame = Turnovers / Games,
+    FGPerGame = FieldGoalsMade / Games
+    
+  )
+
+teamtotals <- teamquality |> 
+  group_by(Season, School) |> 
+  summarise(
+    AvgPoints = mean(PointsPerGame),
+    AvgOppPoints = mean(OppPointsPerGame),
+    AvgRebounds = mean(ReboundsPerGame),
+    AvgSteals = mean(StealsPerGame),
+    AvgTurnovers = mean(TurnoversPerGame),
+    AvgFG = mean(FGPerGame)
+  )
+```
+## Why I chose my metrics
+I used scoring to measure offensive effectiveness, opponent scoring to capture defensive strength, and rebounding to assess control of possession. Steals indicate defensive pressure and the ability to generate turnovers, while turnovers reflect ball security. Field goal makes provide a direct measure of shooting efficiency.
+
+```{r}
+teamzscore <- teamtotals |> 
+  mutate(
+    PointsZscore = as.numeric(scale(AvgPoints, center = TRUE, scale = TRUE)),
+    OppPointsZscore = as.numeric(scale(AvgOppPoints, center = TRUE, scale = TRUE)) * -1,
+    ReboundsZscore = as.numeric(scale(AvgRebounds, center = TRUE, scale = TRUE)),
+    StealsZscore = as.numeric(scale(AvgSteals, center = TRUE, scale = TRUE)),
+    TurnoversZscore = as.numeric(scale(AvgTurnovers, center = TRUE, scale = TRUE)) * -1,
+    FGZscore = as.numeric(scale(AvgFG, center = TRUE, scale = TRUE)),
+    TotalZscore = PointsZscore + OppPointsZscore + ReboundsZscore + StealsZscore + TurnoversZscore + FGZscore
+  ) |> 
+  arrange(desc(TotalZscore))
+
+head(teamzscore)
+
+```
+##Analysis
+UCONN takes up 3/6 top positions reigning supreme at 1, 2, and 4 which is not shocking considering their top two performances also yielded national championship titles in both 2015 and 2016. Their 2018 season ended with a dance in the Final Four. Although Baylor's top performances did not come with a national championship it came with a conference title in 2017. South Carolina's top performance came with a national championship in 2024. I notice how similar the averages are across the different teams and seasons dominating in scoring and UCONN in their FG efficiency. Maryland's 2017 and 2020 fall in the top-20 at #10 and #11 respectively. 
+
+```{r}
+teamzscore |> 
+  filter(School == "Maryland") |> 
+  arrange(desc(TotalZscore)) |>
+  select(School, TotalZscore)
+```
+##UMD Analysis
+Maryland's top performances came in 2017 and 2020 indicating peak performance as they reached the sweet sixteen and were co-Big Ten Champions in 2020. The later seasons, 2018-2025 show a gradual decline in their TotalZscores. Overall, UMD maintained consistently strong performance over the period, with a clear distinction between their best seasons and more average ones, but no season drops below a moderate level of competitiveness.
