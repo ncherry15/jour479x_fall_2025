@@ -52,7 +52,7 @@ teamzscore <- teamtotals |>
 head(teamzscore)
 
 ```
-##Analysis
+## Analysis
 UCONN takes up 3/6 top positions reigning supreme at 1, 2, and 4 which is not shocking considering their top two performances also yielded national championship titles in both 2015 and 2016. Their 2018 season ended with a dance in the Final Four. Although Baylor's top performances did not come with a national championship it came with a conference title in 2017. South Carolina's top performance came with a national championship in 2024. I notice how similar the averages are across the different teams and seasons dominating in scoring and UCONN in their FG efficiency. Maryland's 2017 and 2020 fall in the top-20 at #10 and #11 respectively. 
 
 ```{r}
@@ -61,5 +61,8 @@ teamzscore |>
   arrange(desc(TotalZscore)) |>
   select(School, TotalZscore)
 ```
-##UMD Analysis
+## UMD Analysis
 Maryland's top performances came in 2017 and 2020 indicating peak performance as they reached the sweet sixteen and were co-Big Ten Champions in 2020. The later seasons, 2018-2025 show a gradual decline in their TotalZscores. Overall, UMD maintained consistently strong performance over the period, with a clear distinction between their best seasons and more average ones, but no season drops below a moderate level of competitiveness.
+
+## Write-Up
+Head Coach Geno Auriemma and his University of Connecticut Huskies still reign supreme over women's hoops despite there being another empire on the rise. The Huskies' offensive prowess led them to take over the 2010s seeing five National Championships including a 4-peat from 2013-2016. While the Huskies' brought the title back home in 2025, the 2020s have belonged to Dawn Staley's South Carolina Gamecocks and their high-scoring excitement paired with dominant defense. The Gamecocks have won two national titles since 2020 with the 2022 title over UCONN's Huskies. The Huskies may have won it all last season but who will win the battle this season as we gear up for another year of collegiate hoops?
