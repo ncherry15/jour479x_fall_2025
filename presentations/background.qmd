@@ -1,0 +1,41 @@
+---
+title: "background"
+format: html
+---
+
+Question: Does the number of turnovers by Maryland’s team influence the number of goals allowed in a lacrosse game?
+
+1. Does that data already exist? Can you get it?
+  - Yes, this data does exist
+  - These statistics are tracked in databases like stats.ncaa.org
+  - I am copying the “Game by Game Stats” table into a google sheet document
+  - Then cleaning the data: cleaning opponent names, modifying the “Result” column to “W” or “L,” Adding a “Location” column with “home,” “away,” or “neutral,” and finally adding a “Goals_Allowed” column
+  - I can then save my document as a csv file to work with
+
+2. Do you need assistance in getting it?
+  - Yes, I am not sure how to track possession time which I think will add context to my analysis
+
+3. What time frame do you want/need data from?
+  - I am looking to compile data from the 2021 season - present
+  - I want enough data where I can rule out one-season anomalies and demonstrate a pattern
+
+4.Will you have to improve or augment the data in order to answer your question? If so, how?
+  - Yes I want to add the following contextual variables
+    - home/away
+    - Measure the correlation between goals allowed per turnover
+
+5. Are there other examples of this kind of work (specific or general)? If so, provide them.
+  - Similar studies have been done in other sports
+    - Basketball – turnover margin vs. points allowed
+    - Football - turnover differential vs. win probability
+```{r}
+library(tidyverse)
+```
+
+```{r}
+season25 <- read_csv("/Users/lornizzle/Downloads/2025 lax data - Sheet1.csv")
+season24 <- read_csv("/Users/lornizzle/Downloads/2024 lax data - Sheet1.csv")
+season23 <- read_csv("/Users/lornizzle/Downloads/2023 lax data - Sheet1.csv")
+season22 <- read_csv("/Users/lornizzle/Downloads/2022 lax data - Sheet1.csv")
+season21 <- read_csv("/Users/lornizzle/Downloads/2021 lax data - Sheet1.csv")
+```
