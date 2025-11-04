@@ -33,14 +33,19 @@ library(tidyverse)
 ```
 
 ```{r}
-season25 <- read_csv("/Users/lornizzle/Downloads/2025 lax data - Sheet1.csv")
-season24 <- read_csv("/Users/lornizzle/Downloads/2024 lax data - Sheet1.csv")
-season23 <- read_csv("/Users/lornizzle/Downloads/2023 lax data - Sheet1.csv")
-season22 <- read_csv("/Users/lornizzle/Downloads/2022 lax data - Sheet1.csv")
-season21 <- read_csv("/Users/lornizzle/Downloads/2021 lax data - Sheet1.csv")
+mdseason25 <- read_csv("/Users/lornizzle/Downloads/2025 lax data - Sheet1.csv")
+mdseason24 <- read_csv("/Users/lornizzle/Downloads/2024 lax data - Sheet1.csv")
+mdseason23 <- read_csv("/Users/lornizzle/Downloads/2023 lax data - Sheet1.csv")
+mdseason22 <- read_csv("/Users/lornizzle/Downloads/2022 lax data - Sheet1.csv")
+mdseason21 <- read_csv("/Users/lornizzle/Downloads/2021 lax data - Sheet1.csv")
 ```
 ```{r}
-maryland_lax_data <- bind_rows(season21, season22, season23, season24, season25)
+maryland_lax_data <- bind_rows(mdseason21, mdseason22, mdseason23, mdseason24, mdseason25) |> 
+  mutate(Date = mdy(Date),
+         TO = as.numeric(TO),
+         Goals_Allowed = as.numeric(Goals_Allowed),
+         Location = as.factor(Location),
+         Result = as.factor(Result))
 ```
 
 Data Exploration
@@ -48,8 +53,6 @@ Data Exploration
 1. Describe the data
 ```{r}
 nrow(maryland_lax_data)
-maryland_lax_data <- maryland_lax_data %>%
-  mutate(Date = as.Date(Date, format = "%m/%d/%Y"))
 range(maryland_lax_data$Date, na.rm = TRUE)
 ```
 I combined all observed seasons into one data-frame and it has 85 rows ranging from Feb. 20, 2021 through May 26, 2025.
@@ -74,3 +77,112 @@ ggplot(maryland_lax_data, aes(x = Date, y = TO)) +
 ```
 
 One challenge is that some seasons include additional columns like "FO_Won" and "FOsTaken", which are missing in earlier years, making it harder to compare all seasons consistently. Another issue is the uneven number of games against each opponent, which could bias any relationship between turnovers and goals allowed. Finally, inconsistent or improperly formatted dates initially made it difficult to accurately plot trends over time, adding extra steps before analysis.Small sample sizes for certain opponents further complicate the analysis, as it is difficult to draw meaningful conclusions from only one or two games. These combined factors make it more challenging to definitively answer whether turnovers directly influence goals allowed, and any conclusions must be interpreted with caution.
+
+Adding a time of possession component using: https://lacrossereference.com/stats/timeofpossession-d1-men/ 
+```{r}
+maryland_lax_data <- maryland_lax_data |> 
+  mutate(Avg_Top = 32, 
+         TO_per_pos = TO / Avg_Top)
+```
+
+Looking at turnovers vs. goals allowed
+```{r}
+ggplot(maryland_lax_data, aes(x = TO, y = Goals_Allowed)) +
+geom_point(color = "red", size = 3, alpha = 0.7) +
+geom_smooth(method = "lm", se = FALSE, color = "black") +
+labs(
+title = "Relationship Between Turnovers and Goals Allowed (Maryland 2021–2025)",
+x = "Turnovers",
+y = "Goals Allowed"
+) +
+theme_minimal()
+```
+
+There does not seem to be strong correlation between goals allowed and turnovers for Maryland. In fact, the relationship appears to be slightly negative. But I'm going to actually calculate the the correlation to be sure.
+
+```{r}
+cor(maryland_lax_data$TO, maryland_lax_data$Goals_Allowed)
+
+model <- lm(Goals_Allowed ~ TO, data = maryland_lax_data)
+summary(model)
+```
+There is a statistically significant negative relationship between turnovers and goals allowed. This suggests that as Maryland commits fewer turnovers, they tend to allow slightly more goals, although the effect size is small. Now I am curious to see when turnovers occur and where they matter the most.
+
+The first thing I am curious to see is the home vs away turnover statistics. 
+```{r}
+ggplot(maryland_lax_data, aes(x = TO, y = Goals_Allowed, color = Location)) +
+geom_point(size = 3, alpha = 0.8) +
+geom_smooth(method = "lm", se = FALSE) +
+labs(
+title = "Turnovers vs. Goals Allowed by Game Location",
+x = "Turnovers",
+y = "Goals Allowed"
+) +
+theme_minimal()
+```
+Maryland tends to allow fewer goals at neutral sites as turnovers increase, while home and away games show weaker trends. At home, the relationship is nearly flat, suggesting turnovers have little effect on goals allowed. I believe this is because neutral sites are primarily used for playoff and championship games so, while they may have more turnovers their defense heavily protects the goal in higher stake games. 
+
+
+Now I want to look turnovers' impact on Maryland's losses
+
+```{r}
+ggplot(maryland_lax_data, aes(x = Result, y = TO, fill = Result)) +
+geom_boxplot() +
+labs(title = "Turnovers by Game Result (Win vs. Loss)",
+x = "Result", y = "Turnovers") +
+theme_minimal()
+```
+As expected, games that Maryland lost tended to have more turnovers than those that won. The median turnover count is higher in losses, suggesting that limiting turnovers may be linked to better outcomes
+
+Now lets take a look at Hopkins
+
+```{r}
+hopseason25 <- read_csv("/Users/lornizzle/Downloads/hop 2025 lax data - Sheet1.csv")
+hopseason24 <- read_csv("/Users/lornizzle/Downloads/hop 2024 lax data - Sheet1.csv")
+hopseason23 <- read_csv("/Users/lornizzle/Downloads/hop 2023 lax data - Sheet1.csv")
+hopseason22 <- read_csv("/Users/lornizzle/Downloads/hop 2022 lax data - Sheet1.csv")
+hopseason21 <- read_csv("/Users/lornizzle/Downloads/hop 2021 lax data - Sheet1.csv")
+```
+```{r}
+hopkins_lax_data <- bind_rows(hopseason21, hopseason22, hopseason23, hopseason24, hopseason25) |> 
+  mutate(Date = mdy(Date),
+         TO = as.numeric(TO),
+         Goals_Allowed = as.numeric(Goals_Allowed),
+         Location = as.factor(Location),
+         Result = as.factor(Result))
+```
+```{r}
+all_lax_data <- bind_rows(
+  maryland_lax_data  |>  mutate(Team = "Maryland"),
+  hopkins_lax_data |>  mutate(Team = "Johns Hopkins"))
+```
+```{r}
+all_lax_data |> 
+  group_by(Team)  |> 
+  summarise(
+    Avg_Turnovers = mean(TO, na.rm = TRUE),
+    Avg_Goals_Allowed = mean(Goals_Allowed, na.rm = TRUE)
+  ) |> 
+  pivot_longer(
+    cols = c(Avg_Turnovers, Avg_Goals_Allowed),
+    names_to = "Metric",
+    values_to = "Value"
+  ) |> 
+ggplot(aes(x = Team, y = Value, fill = Metric)) +
+  geom_col(position = "dodge") +
+  labs(title = "Average Turnovers vs. Goals Allowed (Maryland vs. Hopkins)",
+       y = "Average per Game", x = "Team") +
+  scale_fill_manual(values = c("Avg_Turnovers" = "blue", "Avg_Goals_Allowed" = "orange")) +
+  theme_minimal()
+```
+```{r}
+hopkins_model <- lm(Goals_Allowed ~ TO, data = hopkins_lax_data)
+summary(hopkins_model)
+```
+The bar chart shows that Johns Hopkins averages more turnovers and goals allowed per game than Maryland, suggesting Maryland maintains slightly better defensive efficiency and ball control. However, the linear regression model for Hopkins indicates that turnovers are not a significant predictor of goals allowed. 
+
+This means there’s essentially no meaningful linear relationship between the number of turnovers and goals allowed for Hopkins or Maryland. Which brings me back to my question:
+
+Does the number of turnovers by Maryland’s team influence the number of goals allowed in a lacrosse game?
+
+I would say no it does not.
