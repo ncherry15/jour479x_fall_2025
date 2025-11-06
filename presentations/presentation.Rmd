@@ -1,0 +1,111 @@
+---
+title: "presentation"
+output: html_document
+---
+
+Many people have the common belief that in men's lacrosse, turnovers allude to more defensive pressure which would result in more goals allowed. I had the same belief so I decided to take a look at the Terps' performance between 2021 and 2025 to evaluate the following:
+
+Does the number of turnovers in a game influence how many goals Maryland allows?
+
+There is ample data on turnovers but I have rarely, if ever, seen the statistic's observed impact on a teams' goal allowance.
+
+```{r}
+library(tidyverse)
+```
+```{r}
+mdseason25 <- read_csv("2025mdlaxdata.csv")
+mdseason24 <- read_csv("2024mdlaxdata.csv")
+mdseason23 <- read_csv("2023mdlaxdata.csv")
+mdseason22 <- read_csv("2022mdlaxdata.csv")
+mdseason21 <- read_csv("2021mdlaxdata.csv")
+
+maryland_lax_data <- bind_rows(mdseason21, mdseason22, mdseason23, mdseason24, mdseason25) |> 
+  mutate(Date = mdy(Date),
+         TO = as.numeric(TO),
+         Goals_Allowed = as.numeric(Goals_Allowed),
+         Location = as.factor(Location),
+         Result = as.factor(Result))
+```
+I used data from stats.ncaa.org to compile Maryland Men's lacrosse data, then combined the seasons to have all data in one frame. While I initially aimed to include time of possession, this data was not reported in the same game-by-game display so I focused on turnovers and goals allowed. 
+```{r}
+ggplot(maryland_lax_data, aes(x = TO, y = Goals_Allowed)) +
+geom_point(color = "red", size = 3, alpha = 0.7) +
+geom_smooth(method = "lm", se = FALSE, color = "black") +
+labs(
+title = "Relationship Between Turnovers and Goals Allowed (Maryland 2021–2025)",
+x = "Turnovers",
+y = "Goals Allowed"
+) +
+theme_minimal()
+```
+This scatterplot shows a slightly negative relationship between turnovers and games allowed meaning as turnovers increase, the goals allowed actually tend to decrease.
+```{r}
+cor(maryland_lax_data$TO, maryland_lax_data$Goals_Allowed)
+
+model <- lm(Goals_Allowed ~ TO, data = maryland_lax_data)
+summary(model)
+```
+My regression analysis proved that the relationship is statistically significant so turnovers alone do not strongly predict how many goals Maryland allows.
+
+This led me to ask whether turnovers matter more in determining outcomes rather than defensive goals allowed.
+
+```{r}
+ggplot(maryland_lax_data, aes(x = Result, y = TO, fill = Result)) +
+geom_boxplot() +
+labs(title = "Turnovers by Game Result (Win vs. Loss)",
+x = "Result", y = "Turnovers") +
+theme_minimal()
+```
+As expected, more turnovers occur in losses than in games resulting in a Terps win. Although turnovers do not help to predict defensive goals allowed, they do matter and the effect shows up in game outcomes.
+
+To test whether this pattern is unique to Maryland, I compared them to a similar program and longstanding lacrosse rival, Johns Hopkins. 
+
+```{r}
+hopseason25 <- read_csv("2025hoplaxdata.csv")
+hopseason24 <- read_csv("2024hoplaxdata.csv")
+hopseason23 <- read_csv("2023hoplaxdata.csv")
+hopseason22 <- read_csv("2022hoplaxdata.csv")
+hopseason21 <- read_csv("2021hoplaxdata.csv")
+
+hopkins_lax_data <- bind_rows(hopseason21, hopseason22, hopseason23, hopseason24, hopseason25) |> 
+  mutate(Date = mdy(Date),
+         TO = as.numeric(TO),
+         Goals_Allowed = as.numeric(Goals_Allowed),
+         Location = as.factor(Location),
+         Result = as.factor(Result))
+```
+To begin my comparison, I did the same thing for Hopkins as I did to set up Maryland. Now I'm taking it a step further and aggregating both teams and their respective seasons into one dataframe. 
+```{r}
+all_lax_data <- bind_rows(
+  maryland_lax_data  |>  mutate(Team = "Maryland"),
+  hopkins_lax_data |>  mutate(Team = "Johns Hopkins"))
+```
+```{r}
+all_lax_data |> 
+  group_by(Team)  |> 
+  summarise(
+    Avg_Turnovers = mean(TO, na.rm = TRUE),
+    Avg_Goals_Allowed = mean(Goals_Allowed, na.rm = TRUE)
+  ) |> 
+  pivot_longer(
+    cols = c(Avg_Turnovers, Avg_Goals_Allowed),
+    names_to = "Metric",
+    values_to = "Value"
+  ) |> 
+ggplot(aes(x = Team, y = Value, fill = Metric)) +
+  geom_col(position = "dodge") +
+  labs(title = "Average Turnovers vs. Goals Allowed (Maryland vs. Hopkins)",
+       y = "Average per Game", x = "Team") +
+  scale_fill_manual(values = c("Avg_Turnovers" = "blue", "Avg_Goals_Allowed" = "orange")) +
+  theme_minimal()
+```
+Hopkins averages both more turnovers and more goals allowed. While this suggests Maryland has a slight edge when it comes to defensive efficiency, this alone does not prove a relationship between Hopkins' turnovers and goals allowed.
+```{r}
+hopkins_model <- lm(Goals_Allowed ~ TO, data = hopkins_lax_data)
+summary(hopkins_model)
+```
+Hopkins also shows no meaningful relationship between turnovers and goals allowed confirming, across both programs, turnovers alone are not a reliable predictor of defensive performance. 
+
+So the answer to my question: Does the number of turnovers influence goals allowed? is no, not in a consistent or meaningful way.
+
+Turnovers affect winning, but do not directly determine defensive breakdowns. Next time I would I want to find a way to evaluate opponent strength and goalie save percentages alongside turnovers. 
