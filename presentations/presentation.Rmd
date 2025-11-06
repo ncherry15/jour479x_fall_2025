@@ -32,7 +32,7 @@ ggplot(maryland_lax_data, aes(x = TO, y = Goals_Allowed)) +
 geom_point(color = "red", size = 3, alpha = 0.7) +
 geom_smooth(method = "lm", se = FALSE, color = "black") +
 labs(
-title = "Relationship Between Turnovers and Goals Allowed (Maryland 2021–2025)",
+title = "Relationship Between Turnovers and Goals Allowed (Maryland 2021–2025)", subtitle = "Maryland's turnovers alone do not predit defensive performance",
 x = "Turnovers",
 y = "Goals Allowed"
 ) +
@@ -52,7 +52,7 @@ This led me to ask whether turnovers matter more in determining outcomes rather 
 ```{r}
 ggplot(maryland_lax_data, aes(x = Result, y = TO, fill = Result)) +
 geom_boxplot() +
-labs(title = "Turnovers by Game Result (Win vs. Loss)",
+labs(title = "Turnovers by Game Result (Win vs. Loss)", subtitle = "Maryland's losses involve more tunrovers than their wins",
 x = "Result", y = "Turnovers") +
 theme_minimal()
 ```
@@ -94,7 +94,7 @@ all_lax_data |>
   ) |> 
 ggplot(aes(x = Team, y = Value, fill = Metric)) +
   geom_col(position = "dodge") +
-  labs(title = "Average Turnovers vs. Goals Allowed (Maryland vs. Hopkins)",
+  labs(title = "Average Turnovers vs. Goals Allowed (Maryland vs. Hopkins)", subtitle = "Hopkins averages more turnovers and goals allowed than Maryland",
        y = "Average per Game", x = "Team") +
   scale_fill_manual(values = c("Avg_Turnovers" = "blue", "Avg_Goals_Allowed" = "orange")) +
   theme_minimal()
