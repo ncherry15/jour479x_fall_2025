@@ -66,3 +66,14 @@ Maryland's top performances came in 2017 and 2020 indicating peak performance as
 
 ## Write-Up
 Head Coach Geno Auriemma and his University of Connecticut Huskies still reign supreme over women's hoops despite there being another empire on the rise. The Huskies' offensive prowess led them to take over the 2010s seeing five National Championships including a 4-peat from 2013-2016. While the Huskies' brought the title back home in 2025, the 2020s have belonged to Dawn Staley's South Carolina Gamecocks and their high-scoring excitement paired with dominant defense. The Gamecocks have won two national titles since 2020 with the 2022 title over UCONN's Huskies. The Huskies may have won it all last season but who will win the battle this season as we gear up for another year of collegiate hoops?
+
+```{r}
+library(beeswarm)
+library(tidyverse)
+library(ggrepel)
+library(janitor)
+```
+```{r}
+set.seed(1234)
+```
+

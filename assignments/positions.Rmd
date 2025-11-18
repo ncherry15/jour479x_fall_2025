@@ -1,0 +1,12 @@
+---
+title: "positions"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+```{r}
+positions <- read_csv("/Users/lornizzle/Downloads/positions.csv")
+```
+

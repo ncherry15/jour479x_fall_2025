@@ -1,0 +1,152 @@
+---
+title: "Early-Season Over/Underperformance in College Basketball"
+author: "Nyla Cherry"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: true
+---
+
+## Question
+Which men’s college basketball teams are meaningfully outperforming or underperforming their preseason expectations during the first month of the season, and what early-season traits predict these deviations?
+
+The goal is to compare preseason projections to early-season performance and identify statistical patterns—especially on offense and defense—that explain why certain teams exceed or fall short of expectations.
+
+Teams that outperform early will likely exhibit strong offensive efficiency, improved opponent shooting defense, and low turnover rates. Underperformers may struggle with shooting, defensive lapses, or roster continuity issues.
+
+---
+
+## Data Sources
+
+To answer the question in a one-month timeframe, all data will come from free, accessible sources:
+
+### **Preseason Projection Data**
+- **BartTorvik (T-Rank) Preseason Projections**  
+  Provides projected AdjOE, AdjDE, efficiency margin, returning minutes, and transfer impact.  
+
+- **AP Top 25 & Coaches Poll**  
+  Provides categorical expectations for teams entering the season.
+
+### **Early-Season Performance Data**
+- **T-Rank Game Performance Metrics**  
+  Includes offensive and defensive efficiencies, schedule strength, and game-by-game performance ratings.
+
+- **Sports Reference (CBB)**  
+  Provides box scores, shooting percentages, turnovers, and roster data.
+
+### **Contextual Data**
+- Roster continuity (Torvik)
+- Transfer additions (Torvik “PORPAGATU!” metric)
+- Strength of schedule (Torvik, Sports Reference)
+- Game location (home/away/neutral)
+
+All data can be collected manually, scraped responsibly, or imported via CSV files.
+
+---
+
+## Data Collection Plan
+
+1. **Download preseason projections**  
+   From Torvik: projected AdjOE, AdjDE, EM, roster continuity, transfer impact.
+
+2. **Collect first-month game results**  
+   Retrieve actual offensive and defensive efficiencies, shooting %, and turnovers.
+
+3. **Construct deviation metrics**
+   - Efficiency margin difference = Actual EM − Projected EM  
+   - Ranking change vs. preseason  
+   - Wins above expectation based on Torvik’s Game Scores
+
+4. **Identify overperformers and underperformers**
+   Using deviation thresholds or quantiles.
+
+5. **Analyze traits of each group**
+   Variables that may predict deviation:
+   - Effective FG%  
+   - Opponent eFG%  
+   - Turnover rate (TOR)  
+   - Returning minutes  
+   - Transfer productivity  
+   - Strength of schedule  
+
+6. **Visualize the results**
+   Examples:
+   - Scatterplot: Projected EM vs. Actual EM  
+   - Bar chart: Ranking change from preseason to present  
+   - Table: Top over/underperformers with key stats  
+   - Efficiency radar charts for select teams  
+
+---
+
+## Early Hypotheses
+
+- **H1:** Teams with high roster continuity are more likely to outperform early-season expectations.  
+- **H2:** Early-season overperformers will have lower opponent shooting percentages compared to projections.  
+- **H3:** Underperforming teams will show elevated turnover rates or unexpectedly low shooting efficiency.
+
+These hypotheses will guide the analysis and interpretation once data is collected.
+
+---
+
+## Planned Analysis & Visualizations
+
+### **Descriptive Analysis**
+- Summary of preseason projections  
+- Early-season efficiency summaries  
+- Ranking and performance deviations
+
+### **Comparative Analysis**
+- Compare overperformers vs. underperformers on:
+  - Shooting splits  
+  - Turnovers  
+  - Defensive metrics  
+  - Continuity metrics  
+
+### **Visualizations**
+- Efficiency margin deviation plot  
+- Opponent eFG% change chart  
+- Roster continuity vs. performance scatterplot  
+- Team-level radar charts (optional)
+
+---
+
+## Expected Outcomes
+
+By the end of the project, the analysis should reveal:
+- Which teams started significantly better or worse than expected  
+- Which early-season metrics are most predictive of over/underperformance  
+- Whether roster continuity or transfer reliance plays a major role  
+- A replicable framework for analyzing early-season performance
+
+This project replicates the structure of early-season projection analyses used across other sports, including college football (SP+ over/underperformance) and NBA/NHL early-season analytics.
+
+---
+
+## Next Steps
+
+- Begin pulling preseason projections from Torvik  
+- Create a spreadsheet or R dataframe combining preseason and early-season data  
+- Build visuals that highlight deviation and explanatory variables  
+- Draft narrative findings and interpretations  
+
+---
+
+## R Setup (Optional Starter Code)
+
+```{r}
+library(tidyverse)
+library(readr)
+library(janitor)
+
+# Example structure for reading preseason and early-season data
+preseason <- read_csv("preseason_projections.csv") |> clean_names()
+early_season <- read_csv("early_season_stats.csv") |> clean_names()
+
+# Join datasets
+merged <- preseason |> 
+  left_join(early_season, by = "team")
+
+# Example deviation calculation
+merged <- merged |> 
+  mutate(efficiency_deviation = actual_em - projected_em)
