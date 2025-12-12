@@ -1,0 +1,84 @@
+---
+title: "background"
+format: html
+---
+
+## Research Question
+Do offensive play patterns reliably determine who wins NFL games?
+
+Offensive efficiency is one of the strongest predictors of success in modern football, but the exact mechanisms that drive winning remain debated. Early downs shape a team’s ability to stay ahead of schedule, while third downs often determine whether drives extend or stall. EPA (Expected Points Added) provides a play-level measure of how much each action increases or decreases a team’s chance of scoring. This makes EPA ideal for separating sustainable offensive performance (early downs) from high-leverage, volatile moments (third downs).
+## Data Sources
+- nflfastr library 
+- play by play data
+- game schedules
+```{r}
+library(nflfastR)
+library(tidyverse)
+```
+## Load regular season PBP for 2021–2024
+```{r}
+pbp <- load_pbp(2021:2024)
+```
+##Update
+I've decided to go ahead and focus on seasons: 2021-2024 looking only at offensive plays-- run or passes. I used seasons 2021–2024 because they represent four complete years of consistent offensive environments. The 2025 season is excluded because it remains incomplete, which would bias win-loss modeling and EPA summaries. Game outcomes is not included but I intend to merge that later. 2025 data was also disregarded as the season is not completed. I'm also going to compare my early-down epa vs third-down epa across teams.
+##Load Offensive Data
+```{r}
+off_plays <- pbp |> 
+  filter(!is.na(epa),
+         down %in% c(1, 2,3),
+         play_type %in% c("run", "pass"))
+```
+##Load Game Outcomes
+```{r}
+seasons <- 2021:2024
+game_results <- nflreadr::load_schedules(seasons)
+
+game_results <- game_results %>%
+  mutate(
+    home_score = as.integer(home_score),
+    away_score = as.integer(away_score),
+    winner = case_when(
+      home_score > away_score ~ home_team,
+      away_score > home_score ~ away_team,
+      home_score == away_score ~ NA_character_
+    )
+  )
+```
+##Merge Dataframes
+```{r}
+off_plays <- off_plays %>%
+  left_join(
+    game_results %>% select(game_id, winner),
+    by = "game_id",
+    
+off_plays <- off_plays %>%
+  mutate(posteam_won = if_else(posteam == winner, 1, 0))
+  )
+```
+##Epa/down
+```{r}
+epa_by_down <- off_plays |> 
+  group_by(game_id, posteam, down, winner) |> 
+  summarise(down_epa = mean(epa), .groups = "drop")
+
+early_vs_late <- epa_by_down |> 
+  pivot_wider(names_from = down, values_from = down_epa,
+              names_prefix = "down_"
+              )
+```
+##Early findings
+Early-own EPA is much more subject to change than third-down EPA which makes sense as early downs happen frequently, giving teams more opportunities to succeed or fail. I did not expect to see as much variability in the early downs' EPA. Off of first glances, I also see that I could be right,the winners tend to have positive early-down EPA. This early analysis definitely encourages me to look at third down residuals how you suggested. One of my biggest concerns currently is modeling the relationship between early-down EPA and winning while also isolating third-down over-performance defined as a team gaining more EPA than expected (big plays on third down can often result in game-winning drives.) I'm also debating how big of a role the home-away data is going to play in my analysis. Could home team momentum contribute to those "early downs?" If the teams moves the chains, the crowd will be hype is this momentum carrying them to a win or is it really their offensive efficiency. Third down plays also occur much less often but have a bigger impact so comparing their averages may not be entirely accurate. 
+##Early Strategy
+To separate sustainable offensive efficiency from high-leverage swings, I think I can use a two-step modeling strategy:
+
+1.Early-down EPA -> Probability of Winning  
+  This estimates how much consistent drive efficiency contributes to winning (closer to my original scope)
+
+2. Early-down EPA + Third-down Metrics -> Probability of Winning  
+  Third-down performance will be represented using:
+- third-down EPA residuals (overperformance)
+- third-down success metric
+Comparing these two models will reveal whether third-down overperformance adds meaningful predictive power or simply introduces noise.
+##Questions for you
+- Should third-down data be incorporated directly into the main model, or analyzed as its own residual-based measure of overperformance?
+- What is the most reliable metric for third-down success: EPA/play, conversion rate, or something else?
