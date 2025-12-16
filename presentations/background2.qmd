@@ -2,6 +2,8 @@
 title: "refining and viisuals"
 format: html
 ---
+#PLEASE NOTE EVERYTHING WITH ** IS FOR FINAL UPDATE
+
 
 ## Research Question
 Do early-down offensive efficiency and third-down execution contribute differently to winning NFL games?
@@ -40,25 +42,31 @@ game_results <- game_results %>%
     winner = case_when(
       home_score > away_score ~ home_team,
       away_score > home_score ~ away_team,
-      home_score == away_score ~ NA_character_
+      TRUE ~ NA_character_
     )
   )
 ```
-##Merge Dataframes
+##Merge Dataframes**
 ```{r}
-off_plays <- off_plays %>%
+off_plays <- off_plays %>% 
   left_join(
-    game_results %>% select(game_id, winner),
-    by = "game_id",
-    
-off_plays <- off_plays %>%
-  mutate(posteam_won = if_else(posteam == winner, 1, 0))
+    game_results %>% 
+      select(game_id, winner) %>% 
+      rename(game_winner = winner),
+    by = "game_id"
+  ) %>%
+  mutate(
+    posteam_won = case_when(
+      posteam == game_winner ~ 1,
+      posteam != game_winner ~ 0,
+      TRUE ~ NA_real_
+    )
   )
 ```
 ##Epa/down
 ```{r}
 epa_by_down <- off_plays |> 
-  group_by(game_id, posteam, down, winner) |> 
+  group_by(game_id, posteam, down, game_winner) |> 
   summarise(down_epa = mean(epa), .groups = "drop")
 
 early_vs_late <- epa_by_down |> 
@@ -79,17 +87,6 @@ To separate sustainable offensive efficiency from high-leverage swings, I think 
 - third-down EPA residuals (overperformance)
 - third-down success metric
 Comparing these two models will reveal whether third-down overperformance adds meaningful predictive power or simply introduces noise.
-#Adding Postteam Won
-```{r}
-off_plays <- off_plays %>%
-  mutate(
-    posteam_won = case_when(
-      posteam == winner ~ 1,
-      posteam != winner ~ 0,
-      TRUE ~ NA_real_
-    )
-  )
-```
 #Separating Early Downs
 ```{r}
 early_downs <- off_plays |>
@@ -97,6 +94,16 @@ filter(down %in% c(1, 2))
 
 third_downs <- off_plays |>
 filter(down == 3)
+```
+#Showing Early Downs on Game Level**
+```{r}
+early_epa_game <- early_downs %>%
+  group_by(game_id, posteam, posteam_won) %>%
+  summarise(
+    early_epa = mean(epa, na.rm = TRUE),
+    early_plays = n(),
+    .groups = "drop"
+  )
 ```
 #Early Down EPA vs. Winning
 ```{r}
@@ -120,34 +127,128 @@ third_plays = n(),
 .groups = "drop"
 )
 ```
+#Third-Down Conversion Rate on Game Level**
+```{r}
+third_down_game <- third_downs %>%
+  group_by(game_id, posteam, posteam_won) %>%
+  summarise(
+    third_conv_rate = mean(first_down == 1, na.rm = TRUE),
+    third_plays = n(),
+    .groups = "drop"
+  )
+```
 EPA on third down is noisy and play-size dependent while the conversion rate directly captures whether the offense accomplished its goal. I think now this will be easier to interpret and explain visually.
-#Starting the Modeling Process
+#Merge Game Level Dataframes**
 ```{r}
-game_level <- early_epa_game |>
-left_join(third_down_game, by = c("game_id", "posteam", "posteam_won"))
+game_level <- early_epa_game %>%
+  left_join(
+    third_down_game,
+    by = c("game_id", "posteam", "posteam_won")
+  )
+
+game_level_filtered <- game_level %>%
+  filter(
+    early_plays >= 20,
+    third_plays >= 3
+  )
 ```
-Now this will allow me to conduct my two models: winning ~ early-down EPA, and winning ~ early-down EPA + third-down conversion rate.
-#Visualizations
+#Starting the Modeling Process**
 ```{r}
-ggplot(game_level, aes(x = early_epa, y = third_conv_rate, color = factor(posteam_won))) +
-geom_point(alpha = 0.6) +
-labs(
-x = "Early-Down EPA",
-y = "Third-Down Conversion Rate",
-color = "Won Game"
+m1 <- glm(
+  posteam_won ~ early_epa,
+  data = game_level_filtered,
+  family = binomial
 )
+
+summary(m1)
+
+m2 <- glm(
+  posteam_won ~ early_epa + third_conv_rate,
+  data = game_level_filtered,
+  family = binomial
+)
+
+summary(m2)
 ```
-This plot shows that teams with higher early-down EPA and higher third-down conversion rates are more likely to win games. Wins (blue points) tend to cluster in the upper-right area, while losses (red points) are more common in the lower-left. There’s overlap, but early-down efficiency clearly separates winners better than third-down success alone.
-#Other Potential Visualizations
-Early-Down EPA vs Win Probability
-- Boxplot
-- Show the separation between winners and losers
-Third-Down Conversion Rate Distribution
-- Side by side boxplots
-- Analyzing is winners consistently convert more often
+Comparing these models allows me to test whether third-down execution adds predictive power beyond sustainable early-down efficiency.
+#Home/Away Indication**
+```{r}
+game_level_filtered <- game_level_filtered %>%
+  left_join(
+    game_results %>% 
+      select(game_id, home_team),
+    by = "game_id"
+  ) %>%
+  mutate(
+    is_home = if_else(posteam == home_team, 1, 0)
+  )
+```
+#Adding Home Effect to the Model**
+```{r}
+m3 <- glm(
+  posteam_won ~ early_epa + third_conv_rate + is_home,
+  data = game_level_filtered,
+  family = binomial
+)
+
+summary(m3)
+```
+#Bubble Chart**
+```{r}
+ggplot(game_level_filtered, 
+       aes(x = early_epa, 
+           y = third_conv_rate, 
+           color = factor(posteam_won),
+           size = third_plays)) +
+  geom_point(alpha = 0.6) +
+  labs(
+    x = "Early-Down EPA",
+    y = "Third-Down Conversion Rate",
+    color = "Won Game",
+    size = "Third-Down Plays"
+  )
+```
+#Early-Down EPA vs Win Probability Boxplot**
+```{r}
+ggplot(game_level_filtered, aes(x = factor(posteam_won), y = early_epa)) +
+  geom_boxplot(width = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.6) +
+  labs(
+    x = "Won Game",
+    y = "Early-Down EPA",
+    caption = "1 - Winner is Possesion Team"
+  )
+```
+#Third-Down Overperformance Visualization**
+```{r}
+td_resid_model <- lm(third_conv_rate ~ early_epa, data = game_level_filtered)
+
+game_level_filtered <- game_level_filtered %>%
+  mutate(third_resid = resid(td_resid_model))
+
+ggplot(game_level_filtered, aes(x = third_resid, fill = factor(posteam_won))) +
+  geom_density(alpha = 0.6) +
+  labs(
+    x = "Third-Down Overperformance (Residual)",
+    fill = "Won Game",
+    caption = "1 - Winner is Possesion Team"
+  )
+```
+#Home/Away Boxplot** 
+```{r}
+ggplot(game_level_filtered, aes(x = factor(is_home), y = early_epa)) +
+  geom_boxplot() +
+  labs(
+    x = "Home Team",
+    y = "Early-Down EPA",
+    caption = "1 - Winner is Possesion Team"
+  )
+```
 #Some Roadblocks
 - Third-down sample size
 - Some of the EPAs could reflect team quality rather than actual in-game execution
 #New Questions
 - Should I consider a minimum play threshold to accommodate the third-down sample size?
 - Do you think I need to incorporate the home/away effect because that definitely could shift early-down EPA?
+#New Findings**
+Early-down EPA is a very strong predictor of winning, with higher early-down efficiency substantially increasing a team’s probability of winning. This supports the idea that early-down performance reflects sustainable offensive quality rather than randomness. Adding third-down conversion rate significantly improves my model, indicating that third-down execution provides additional explanatory power beyond early-down efficiency, though its effect appears more situational. It's important to note that the early-down EPA coefficient remains large and significant across all models, reinforcing its robustness as a driver of game outcomes. Visualizations mirror these results: winners are clearly separated from losers in early-down EPA, while third-down overperformance is right-shifted for winners but shows substantial overlap, highlighting its volatility. Home teams exhibit slightly higher early-down EPA on average, but the distributions largely overlap, suggesting that home-field advantage plays a secondary role. Overall, the results indicate that early-down efficiency captures consistent offensive strength, while third-down success and home-field effects add contextual but less stable advantages.
