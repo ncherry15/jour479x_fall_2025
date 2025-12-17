@@ -1,0 +1,160 @@
+---
+title: "Early-Down Efficiency vs High-Leverage Execution"
+subtitle: "What really drives winning in the NFL?"
+author: "Nyla Cherry"
+date: 12-16-25
+output: html_document
+---
+In football, third down is frequently referred to as the most crucial down. Converting in high-pressure situations can swing games, lengthen drives, and determine outcomes. However, third downs are extremely situational and uncommon. Early downs, on the other hand, happen much more frequently and influence every offensive possession. This study poses a straightforward but important question: do teams win NFL games because they routinely move the ball on early downs or because they perform better on crucial third-down situations?
+
+Using play-by-play data from the NFL seasons 2021–2024 I was able to discover early-down offensive performance is a strong and reliable predictor of victory. Although third-down execution has more explanatory value, it seems more situational and erratic. When taken as a whole, the findings indicate that winning teams typically establish a foundation for long-lasting efficiency on early downs, with third-down success serving as an enhancer rather than a substitute for that efficiency.
+
+Football analysis often emphasizes third-down performance because of its obvious leverage: failing on third down ends drives, while converting sustains them. But concentrating too much on third downs runs the risk of exaggerating the significance of infrequent occurrences and downplaying the significance of regular offensive quality. Separating the two can help explain how teams truly win games and whether third-down success is something that teams can consistently replicate. Does early-down efficiency represents repeatable skill while third-down success demonstrates situational execution?
+
+This analysis uses NFL play-by-play data from nflfastR, covering regular season games from 2021–2024.
+
+Key data sources:
+- nflfastR play-by-play data
+- Game schedules and final scores
+```{r}
+library(nflfastR)
+library(tidyverse)
+
+pbp <- load_pbp(2021:2024)
+```
+To focus on meaningful offensive actions, I restrict the dataset to:
+- Offensive plays with valid EPA values
+- Runs and passes only
+- Downs 1 through 3 (fourth downs are excluded due to their rarity)
+```{r}
+off_plays <- pbp |> 
+  filter(!is.na(epa),
+         down %in% c(1, 2,3),
+         play_type %in% c("run", "pass"))
+```
+Game outcomes are merged from official schedules. A team is listed as having "won" a game if it outscored its opponent. The variable posteam_won is the dependent variable in all models.
+```{r}
+seasons <- 2021:2024
+game_results <- nflreadr::load_schedules(seasons)
+
+game_results <- game_results %>%
+  mutate(
+    home_score = as.integer(home_score),
+    away_score = as.integer(away_score),
+    winner = case_when(
+      home_score > away_score ~ home_team,
+      away_score > home_score ~ away_team,
+      TRUE ~ NA_character_
+    )
+  )
+off_plays <- off_plays %>% 
+  left_join(
+    game_results %>% 
+      select(game_id, winner) %>% 
+      rename(game_winner = winner),
+    by = "game_id"
+  ) %>%
+  mutate(
+    posteam_won = case_when(
+      posteam == game_winner ~ 1,
+      posteam != game_winner ~ 0,
+      TRUE ~ NA_real_
+    )
+  )
+```
+The central methodological decision in this project is separating early downs (1st and 2nd) from third downs. Early downs occur frequently and across many game states, making them a strong candidate for measuring sustainable offensive quality. Third downs are high-leverage but occur far less often and are more sensitive to field position, play design, and randomness.
+```{r}
+early_downs <- off_plays |> 
+  filter(down %in% c(1, 2))
+
+third_downs <- off_plays |> 
+  filter(down == 3)
+```
+To align offensive performance with game outcomes, all metrics are aggregated to the team-game level. Early-down efficiency is measured as average EPA on first and second downs. Averaging EPA across many plays reduces noise and emphasizes consistent drive efficiency.
+```{r}
+early_epa_game <- early_downs %>%
+  group_by(game_id, posteam, posteam_won) %>%
+  summarise(
+    early_epa = mean(epa, na.rm = TRUE),
+    early_plays = n(),
+    .groups = "drop"
+  )
+```
+Rather than using third-down EPA—which can be skewed by single explosive plays, I use conversion rate as a more interpretable measure of third-down success.
+```{r}
+third_down_game <- third_downs %>%
+  group_by(game_id, posteam, posteam_won) %>%
+  summarise(
+    third_conv_rate = mean(first_down == 1, na.rm = TRUE),
+    third_plays = n(),
+    .groups = "drop"
+)
+```
+```{r}
+game_level <- early_epa_game %>%
+  left_join(third_down_game, by = c("game_id", "posteam", "posteam_won")) %>%
+    filter(early_plays >= 20, third_plays >= 3)
+```
+I use a regression model to determine the probability of winning a game. This approach is appropriate because the outcome variable (posteam_won) is binary.
+
+Three models are estimated:
+- Early-down efficiency only
+- Early-down efficiency plus third-down execution
+- Adding home-field advantage
+```{r}
+m1 <- glm(posteam_won ~ early_epa, data = game_level, family = binomial)
+summary(m1)
+```
+Early-down EPA is a strong and statistically significant predictor of winning. Teams with higher early-down efficiency are substantially more likely to win games.
+```{r}
+ggplot(game_level, aes(x = factor(posteam_won), y = early_epa)) +
+geom_boxplot(width = 0.6) +
+geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.6) +
+labs(
+title = "Early-Down EPA Separates Winners from Losers",
+x = "Won Game",
+y = "Early-Down EPA",
+caption = "Each point represents a team-game from 2021–2024"
+)
+```
+```{r}
+m2 <- glm(posteam_won ~ early_epa + third_conv_rate,
+data = game_level,
+family = binomial)
+summary(m2)
+```
+Third-down conversion rate significantly improves the model, indicating that third-down execution adds explanatory power beyond early-down efficiency. However, early-down EPA remains large and significant, reinforcing its role as the foundation of offensive success.
+
+To isolate situational execution, I regress third-down conversion rate on early-down EPA and examine the residuals. These residuals capture how much a team over- or under-performed on third down relative to its underlying efficiency.
+```{r}
+td_resid_model <- lm(third_conv_rate ~ early_epa, data = game_level)
+
+game_level <- game_level %>%
+mutate(third_resid = resid(td_resid_model))
+
+ggplot(game_level, aes(x = third_resid, fill = factor(posteam_won))) +
+geom_density(alpha = 0.6) +
+labs(
+title = "Winning Teams Tend to Overperform on Third Down",
+x = "Third-Down Overperformance (Residual)",
+fill = "Won Game"
+)
+```
+Winners are right-shifted, but there is substantial overlap—highlighting the volatile and situational nature of third-down success.
+
+Home teams may benefit from crowd noise, communication advantages, and momentum. I include a home-field indicator as well.
+```{r}
+game_level <- game_level %>%
+left_join(game_results %>% select(game_id, home_team), by = "game_id") %>%
+mutate(is_home = if_else(posteam == home_team, 1, 0))
+
+m3 <- glm(posteam_won ~ early_epa + third_conv_rate + is_home,
+data = game_level,
+family = binomial)
+summary(m3)
+```
+Home-field advantage modestly increases win probability, but it does not meaningfully alter the relationship between early-down efficiency and winning.
+
+The results consistently show that early-down efficiency is the strongest and most stable predictor of winning NFL games. Third-down execution matters, but it appears to function as a situational amplifier rather than a substitute for sustainable offensive quality. Teams that rely solely on third-down success without early-down efficiency are unlikely to win consistently.
+
+NFL games are not won solely on third down. While high-leverage execution matters, the foundation of winning football lies in consistently moving the ball on early downs. Early-down EPA captures who a team is; third-down success captures what happens in critical moments. Winning teams tend to have both—but it is early-down efficiency that makes third-down opportunities possible in the first place.
